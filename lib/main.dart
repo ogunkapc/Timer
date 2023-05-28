@@ -1,7 +1,35 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+Duration duration = const Duration();
+
+final timer = StreamProvider.autoDispose(
+  (ref) {
+    return Stream.periodic(
+      const Duration(seconds: 1),
+      (_) {
+        addTimer(ref);
+      },
+    );
+  },
+);
+
+final addSecondsProvider = StateProvider((ref) => 1);
+
+void addTimer(ref) {
+  final seconds =
+      ref.watch(addSecondsProvider.notifier).state + duration.inSeconds;
+  duration = Duration(seconds: seconds);
+}
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -10,61 +38,101 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Timer app',
       darkTheme: ThemeData.dark(
         useMaterial3: true,
       ),
       theme: ThemeData(
-        primarySwatch: Colors.blue,
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const Timer(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+class Timer extends ConsumerWidget {
+  const Timer({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final streamCount = ref.watch(timer);
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+    String minutes = twoDigits(duration.inMinutes.remainder(60));
+    String seconds = twoDigits(duration.inSeconds.remainder(60));
+    String hours = twoDigits(duration.inHours);
+    final backgroundColor =
+        Colors.primaries[Random().nextInt(Colors.primaries.length)];
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: Text(widget.title),
+        title: const Text('Timer'),
+        centerTitle: true,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          streamCount.when(
+            data: (value) {
+              return Container(
+                alignment: Alignment.center,
+                margin: const EdgeInsets.only(left: 40, right: 40),
+                height: 300,
+                width: 300,
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 5,
+                    )),
+                child: Text(
+                  "$hours:$minutes:$seconds",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 40,
+                  ),
+                ),
+              );
+            },
+            error: (error, stackTrace) => Text('Error: $error'),
+            loading: () => const Center(
+              child: CircularProgressIndicator(),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+          ),
+          // TODO: Add controller buttons
+          // const SizedBox(
+          //   height: 20,
+          // ),
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.center,
+          //   children: [
+          //     ElevatedButton(
+          //       onPressed: () {},
+          //       child: const Text("Start"),
+          //     ),
+          //     const SizedBox(width: 20),
+          //     ElevatedButton(
+          //       // onPressed: timerController.pauseTimer,
+          //       onPressed: () {},
+          //       child: const Text('Pause'),
+          //     ),
+          //     const SizedBox(width: 20),
+          //     ElevatedButton(
+          //       // onPressed: timerController.resumeTimer,
+          //       onPressed: () {},
+          //       child: const Text('Resume'),
+          //     ),
+          //     const SizedBox(width: 20),
+          //     ElevatedButton(
+          //       // onPressed: timerController.stopTimer,
+          //       onPressed: () {},
+          //       child: const Text('Stop'),
+          //     ),
+          //   ],
+          // )
+        ],
       ),
     );
   }
